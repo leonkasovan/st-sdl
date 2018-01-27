@@ -21,9 +21,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <SDL.h>
-#include <SDL_thread.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_thread.h>
+#include <SDL2/SDL_ttf.h>
 
 #define Glyph Glyph_
 #define Font Font_
@@ -341,6 +341,7 @@ static void *xrealloc(void *, size_t);
 static void *xcalloc(size_t nmemb, size_t size);
 static void xflip(void);
 
+/* TODO
 static void (*handler[SDL_NUMEVENTS])(SDL_Event *) = {
 	[SDL_KEYDOWN] = kpress,
 	[SDL_VIDEORESIZE] = resize,
@@ -355,7 +356,7 @@ static void (*handler[SDL_NUMEVENTS])(SDL_Event *) = {
 	[SelectionRequest] = selrequest,
 #endif
 };
-
+*/
 /* Globals */
 static DC dc;
 static XWindow xw;
@@ -374,6 +375,8 @@ static char *opt_font = NULL;
 
 static char *usedfont = NULL;
 static int usedfontsize = 0;
+
+static bool exitThread = false;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
@@ -2713,6 +2716,7 @@ run(void) {
 	}
 
 	while(SDL_WaitEvent(&ev)) {
+/* TODO
 		if(ev.type == SDL_QUIT) break;
 
 		if(handler[ev.type])
@@ -2723,10 +2727,10 @@ run(void) {
 			case SDL_VIDEOEXPOSE:
 			case SDL_USEREVENT:
 				draw();
-		}
+		}*/
 	}
 
-	SDL_KillThread(thread);
+	exitThread = true;
 }
 
 int
