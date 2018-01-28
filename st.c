@@ -206,11 +206,10 @@ typedef struct {
 } XWindow;
 
 typedef struct {
-	SDLKey k;
-	SDLMod mask;
+	SDL_Keycode k;
+	uint16_t mask;
 	char s[ESC_BUF_SIZ];
 } Key;
-
 /* TODO: use better name for vars... */
 typedef struct {
 	int mode;
@@ -234,8 +233,8 @@ typedef union {
 } Arg;
 
 typedef struct {
-	SDLMod mod;
-	SDLKey keysym;
+	SDL_Keycode k;
+	uint16_t mask;
 	void (*func)(const Arg *);
 	const Arg arg;
 } Shortcut;
@@ -306,7 +305,6 @@ static void initcolormap(void);
 static void sdlresettitle(void);
 static void xsetsel(char*);
 static void sdltermclear(int, int, int, int);
-static void xresize(int, int);
 
 static void expose(SDL_Event *);
 static void visibility(SDL_Event *);
@@ -324,10 +322,7 @@ static void selnotify(SDL_Event *);
 static void selclear(SDL_Event *);
 static void selrequest(SDL_Event *);
 
-static void selinit(void);
 static inline bool selected(int, int);
-static void selcopy(void);
-static void selpaste(void);
 static void selscroll(int, int);
 
 static int utf8decode(char *, long *);
@@ -350,11 +345,6 @@ static void (*handler[SDL_NUMEVENTS])(SDL_Event *) = {
 	[SDL_MOUSEMOTION] = bmotion,
 	[SDL_MOUSEBUTTONDOWN] = bpress,
 	[SDL_MOUSEBUTTONUP] = brelease,
-#if 0
-	[SelectionClear] = selclear,
-	[SelectionNotify] = selnotify,
-	[SelectionRequest] = selrequest,
-#endif
 };
 */
 /* Globals */
@@ -552,21 +542,6 @@ utf8size(char *s) {
 	}
 }
 
-void
-selinit(void) {
-// TODO
-#if 0
-	memset(&sel.tclick1, 0, sizeof(sel.tclick1));
-	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
-	sel.mode = 0;
-	sel.bx = -1;
-	sel.clip = NULL;
-	sel.xtarget = XInternAtom(xw.dpy, "UTF8_STRING", 0);
-	if(sel.xtarget == None)
-		sel.xtarget = XA_STRING;
-#endif
-}
-
 static int
 x2col(int x) {
 	x -= borderpx;
@@ -639,12 +614,6 @@ mousereport(SDL_Event *e) {
 		}
 	}
 
-//TODO
-#if 0
-	buf[3] = 32 + button + (state & ShiftMask ? 4 : 0)
-		+ (state & Mod4Mask    ? 8  : 0)
-		+ (state & ControlMask ? 16 : 0);
-#endif
 	buf[3] = 32 + button;
 
 	ttywrite(buf, sizeof(buf));
@@ -703,106 +672,6 @@ selcopy(void) {
 	}
 	sel.alt = IS_SET(MODE_ALTSCREEN);
 	xsetsel(str);
-}
-
-void
-selnotify(SDL_Event *e) {
-(void)e;
-// TODO
-#if 0
-	ulong nitems, ofs, rem;
-	int format;
-	uchar *data;
-	Atom type;
-
-	ofs = 0;
-	do {
-		if(XGetWindowProperty(xw.dpy, xw.win, XA_PRIMARY, ofs, BUFSIZ/4,
-					False, AnyPropertyType, &type, &format,
-					&nitems, &rem, &data)) {
-			fprintf(stderr, "Clipboard allocation failed\n");
-			return;
-		}
-		ttywrite((const char *) data, nitems * format / 8);
-		XFree(data);
-		/* number of 32-bit chunks returned */
-		ofs += nitems * format / 32;
-	} while(rem > 0);
-#endif
-}
-
-void
-selpaste(void) {
-// TODO
-#if 0
-	XConvertSelection(xw.dpy, XA_PRIMARY, sel.xtarget, XA_PRIMARY,
-			xw.win, CurrentTime);
-#endif
-}
-
-void selclear(SDL_Event *e) {
-	(void)e;
-	if(sel.bx == -1)
-		return;
-	sel.bx = -1;
-	tsetdirt(sel.b.y, sel.e.y);
-}
-
-void
-selrequest(SDL_Event *e) {
-(void)e;
-// TODO
-#if 0
-	XSelectionRequestEvent *xsre;
-	XSelectionEvent xev;
-	Atom xa_targets, string;
-
-	xsre = (XSelectionRequestEvent *) e;
-	xev.type = SelectionNotify;
-	xev.requestor = xsre->requestor;
-	xev.selection = xsre->selection;
-	xev.target = xsre->target;
-	xev.time = xsre->time;
-	/* reject */
-	xev.property = None;
-
-	xa_targets = XInternAtom(xw.dpy, "TARGETS", 0);
-	if(xsre->target == xa_targets) {
-		/* respond with the supported type */
-		string = sel.xtarget;
-		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
-				XA_ATOM, 32, PropModeReplace,
-				(uchar *) &string, 1);
-		xev.property = xsre->property;
-	} else if(xsre->target == sel.xtarget && sel.clip != NULL) {
-		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
-				xsre->target, 8, PropModeReplace,
-				(uchar *) sel.clip, strlen(sel.clip));
-		xev.property = xsre->property;
-	}
-
-	/* all done, send a notification to the listener */
-	if(!XSendEvent(xsre->display, xsre->requestor, True, 0, (XEvent *) &xev))
-		fprintf(stderr, "Error sending SelectionNotify event\n");
-#endif
-}
-
-void
-xsetsel(char *str) {
-(void)str;
-// TODO
-# if 0
-	/* register the selection for both the clipboard and the primary */
-	Atom clipboard;
-
-	free(sel.clip);
-	sel.clip = str;
-
-	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, CurrentTime);
-
-	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
-	XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
-#endif
 }
 
 void
@@ -903,9 +772,6 @@ execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
 	const struct passwd *pass = getpwuid(getuid());
-#if 0
-	char buf[sizeof(long) * 8 + 1];
-#endif
 
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
@@ -917,11 +783,6 @@ execsh(void) {
 		setenv("SHELL", pass->pw_shell, 0);
 		setenv("HOME", pass->pw_dir, 0);
 	}
-
-#if 0
-	snprintf(buf, sizeof(buf), "%lu", xw.win);
-	setenv("WINDOWID", buf, 1);
-#endif
 
 	signal(SIGCHLD, SIG_DFL);
 	signal(SIGHUP, SIG_DFL);
@@ -1900,10 +1761,6 @@ tputc(char *c, int len) {
 			tnewline(IS_SET(MODE_CRLF));
 			return;
 		case '\a':	/* BEL */
-#if 0
-			if(!(xw.state & WIN_FOCUSED))
-				xseturgency(1);
-#endif
 			return;
 		case '\033':	/* ESC */
 			csireset();
@@ -2142,12 +1999,6 @@ tresize(int col, int row) {
 	tsetscroll(0, row-1);
 
 	return (slide > 0);
-}
-
-void
-xresize(int col, int row) {
-	xw.tw = MAX(1, 2*borderpx + col * xw.cw);
-	xw.th = MAX(1, 2*borderpx + row * xw.ch);
 }
 
 void
@@ -2645,7 +2496,6 @@ cresize(int width, int height)
 	xw.win = SDL_SetVideoMode(xw.w, xw.h, 16, SDL_HWSURFACE |
 SDL_DOUBLEBUF | SDL_RESIZABLE);
 	tresize(col, row);
-	xresize(col, row);
 	ttyresize();
 }
 
@@ -2708,9 +2558,9 @@ int ttythread(void *unused) {
 void
 run(void) {
 	SDL_Event ev;
-	SDL_Thread *thread;
+	SDL_Thread *thread = SDL_CreateThread(ttythread, NULL);
 
-	if(!(thread = SDL_CreateThread(ttythread, NULL))) {
+	if(thread) {
 		fprintf(stderr, "Unable to create thread: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
