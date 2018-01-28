@@ -24,7 +24,7 @@ config.h:
 ${OBJ}: config.h config.mk
 
 st: ${OBJ}
-	@echo CC -o $@
+	@echo CC -o $@ ${OBJ} ${LDFLAGS}
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 clean:

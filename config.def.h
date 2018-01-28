@@ -3,12 +3,8 @@
 /* appearance */
 static char font[] = "./LiberationMono-Regular.ttf:./LiberationMono-Bold.ttf";
 static int fontsize = 12;
-static int borderpx = 2;
+static int borderpx = 0;
 static char shell[] = "/bin/sh";
-
-/* double-click timeout (in milliseconds) between clicks for selection */
-static unsigned int doubleclicktimeout = 300;
-static unsigned int tripleclicktimeout = 600;
 
 /* TERM value */
 static char termname[] = "st-256color";
