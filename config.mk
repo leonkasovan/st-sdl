@@ -9,12 +9,14 @@ MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include
-LIBS = -L/usr/lib -lc -lutil
+LIBS = -lc -lutil -L/lib -L/usr/lib
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS += -g -std=c99 -w -Os ${INCS} ${CPPFLAGS} `sdl2-config --cflags`
-LDFLAGS += -g ${LIBS} `sdl2-config --libs` -lSDL2_ttf
+CFLAGS += -g -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS} `sdl-config --cflags`
+LDFLAGS += -g ${LIBS} -lSDL2 -lSDL2_ttf 
+#-Wl,-rpath-link,${CC_ROOT}/lib,-rpath-link,${CC_ROOT}/usr/lib
 
 # compiler and linker
-CC ?= cc
+#CC = arm-linux-gnueabihf-gcc
+CC = gcc
