@@ -194,8 +194,8 @@ typedef struct {
 /* Purely graphic info */
 typedef struct {
 	//Colormap cmap;
-	SDL_Surface *win;
-    SDL_Window *screen;
+	SDL_Surface *surface;
+	SDL_Window *window;
 	int scr;
 	int tw, th; /* tty width and height */
 	int w;	/* window width */
@@ -308,7 +308,6 @@ static void xflip(void);
 /* Globals */
 static DC dc;
 static XWindow xw;
-static SDL_Renderer* renderer;
 static Term term;
 static CSIEscape csiescseq;
 static STREscape strescseq;
@@ -369,7 +368,7 @@ xcalloc(size_t nmemb, size_t size) {
 
 void
 xflip(void) {
-    SDL_RenderPresent(renderer);
+	SDL_UpdateWindowSurface(xw.window);
 }
 
 int
@@ -632,6 +631,7 @@ ttyread(void) {
 	while(buflen >= UTF_SIZ || isfullutf8(ptr,buflen)) {
 		charsize = utf8decode(ptr, &utf8c);
 		utf8encode(&utf8c, s);
+		fprintf(stderr, "%.*s", charsize, s);
 		tputc(s, charsize);
 		ptr += charsize;
 		buflen -= charsize;
@@ -1341,7 +1341,7 @@ strhandle(void) {
 		case '1':
 		case '2':
 		case ';':
-            break; /* No windowing */
+			break; /* No windowing */
 		case '4': /* TODO: Set color (arg0) to "rgb:%hexr/$hexg/$hexb" (arg1) */
 			break;
 		default:
@@ -1749,7 +1749,7 @@ sdltermclear(int col1, int row1, int col2, int row2) {
 		(row2-row1+1) * xw.ch
 	};
 	SDL_Color c = dc.colors[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
-	SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, c.r, c.g, c.b));
+	SDL_FillRect(xw.surface, &r, SDL_MapRGB(xw.surface->format, c.r, c.g, c.b));
 }
 
 /*
@@ -1759,7 +1759,7 @@ void
 xclear(int x1, int y1, int x2, int y2) {
 	SDL_Rect r = { x1, y1, x2-x1, y2-y1 };
 	SDL_Color c = dc.colors[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
-	SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, c.r, c.g, c.b));
+	SDL_FillRect(xw.surface, &r, SDL_MapRGB(xw.surface->format, c.r, c.g, c.b));
 }
 
 void
@@ -1831,16 +1831,18 @@ sdlinit(void) {
 	/* colors */
 	initcolormap();
 
-	if(!(xw.screen = SDL_CreateWindow("st",
-                                      SDL_WINDOWPOS_UNDEFINED,
-                                      SDL_WINDOWPOS_UNDEFINED,
-                                      xw.w,
-                                      xw.h,
-                                      SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS))) {
+	if(!(xw.window = SDL_CreateWindow("st",
+			SDL_WINDOWPOS_UNDEFINED,
+			SDL_WINDOWPOS_UNDEFINED,
+			xw.w,
+			xw.h,
+			SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS))) {
 		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
-
+	xw.surface = SDL_GetWindowSurface(xw.window);
+	SDL_FillRect(xw.surface,0,SDL_MapRGB(xw.surface->format,0,0,0));
+	SDL_UpdateWindowSurface(xw.window);
 	expose(NULL);
 	cresize();
 }
@@ -1921,20 +1923,21 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		SDL_Surface *text_surface;
 		SDL_Rect r = {winx, winy, width, xw.ch};
 
-		SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, bg->r, bg->g, bg->b));
+		SDL_FillRect(xw.surface, &r, SDL_MapRGB(xw.surface->format, bg->r, bg->g, bg->b));
 		if(!(text_surface=TTF_RenderUTF8_Solid(font,s,*fg))) {
 			printf("Could not TTF_RenderUTF8_Solid: %s\n", TTF_GetError());
 			exit(EXIT_FAILURE);
 		} else {
-			SDL_BlitSurface(text_surface,NULL,xw.win,&r);
+			SDL_BlitSurface(text_surface,NULL,xw.surface,&r);
 			SDL_FreeSurface(text_surface);
 		}
 
 		if(base.mode & ATTR_UNDERLINE) {
 			r.y += TTF_FontAscent(font) + 1;
 			r.h = 1;
-			SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+			SDL_FillRect(xw.surface, &r, SDL_MapRGB(xw.surface->format, fg->r, fg->g, fg->b));
 		}
+		SDL_UpdateWindowSurface(xw.window);
 	}
 }
 
@@ -1993,9 +1996,6 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-
-	if(!(xw.state & WIN_VISIBLE))
-		return;
 
 	for(y = y1; y < y2; y++) {
 		if(!term.dirty[y])
@@ -2103,9 +2103,9 @@ kpress(SDL_Event *ev) {
 			break;
 			/* 3. X lookup  */
 		default:
-            if(meta)
-                ttywrite("\033", 1);
-            ttywrite(SDL_GetKeyName(ksym), 1);
+			if(meta)
+				ttywrite("\033", 1);
+			ttywrite(SDL_GetKeyName(ksym), 1);
 			break;
 		}
 	}
@@ -2116,8 +2116,8 @@ cresize()
 {
 	int col, row;
 
-    xw.w = 1280;
-    xw.h = 720;
+	xw.w = 1280;
+	xw.h = 720;
 
 	col = (xw.w - 2*borderpx) / xw.cw;
 	row = (xw.h - 2*borderpx) / xw.ch;
@@ -2166,8 +2166,8 @@ int ttythread(void *unused) {
 		i = 0;
 		tv = NULL;
 
-		if(SDL_PushEvent(&event)) {
-			fputs("Warning: unable to push tty update event.\n", stderr);
+		if(SDL_PushEvent(&event) != 1) {
+			fprintf(stderr, "Warning: unable to push tty update event: %s.\n", SDL_GetError());
 		}
 	}
 
@@ -2186,8 +2186,8 @@ run(void) {
 
 	while(SDL_WaitEvent(&ev)) {
 		if(ev.type == SDL_QUIT) break;
-        else if (ev.type == SDL_KEYDOWN) kpress(&ev);
-
+		else if (ev.type == SDL_KEYDOWN) kpress(&ev);
+		else if (ev.type == SDL_USEREVENT) draw();
 	}
 
 	exitThread = true;
@@ -2196,8 +2196,8 @@ run(void) {
 int main(int argc, char *argv[]) {
 	int i;
 
-    xw.w = 1280;
-    xw.h = 720;
+	xw.w = 1280;
+	xw.h = 720;
 
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
