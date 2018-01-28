@@ -9,12 +9,15 @@ MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include
-LIBS = -lc -lutil -L${CC_ROOT}/lib -L${CC_ROOT}/usr/lib #-L/lib -L/usr/lib
+LIBS = -lutil -L${CC_ROOT}/lib -L${CC_ROOT}/usr/lib -lSDL2 \
+-Wl,-Bstatic -lSDL2_ttf -lfreetype -lpng12 \
+-Wl,-Bdynamic -lz -lm -lc \
+-Wl,-rpath-link,${CC_ROOT}/lib,-rpath-link,${CC_ROOT}/usr/lib 
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
 CFLAGS += -g -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS} `sdl-config --cflags`
-LDFLAGS += -g ${LIBS} -lSDL2 -lSDL2_ttf -Wl,-rpath-link,${CC_ROOT}/lib,-rpath-link,${CC_ROOT}/usr/lib 
+LDFLAGS += -g ${LIBS}
 #-Wl,-rpath-link,${CC_ROOT}/lib,-rpath-link,${CC_ROOT}/usr/lib
 
 # compiler and linker
