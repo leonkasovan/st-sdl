@@ -78,7 +78,7 @@ enum glyph_attribute {
 	ATTR_BOLD      = 4,
 	ATTR_GFX       = 8,
 	ATTR_ITALIC    = 16,
-	ATTR_BLINK     = 32,
+	ATTR_BLINK     = 32
 };
 
 enum cursor_movement {
@@ -120,7 +120,7 @@ enum escape_state {
 	ESC_STR	= 4, /* DSC, OSC, PM, APC */
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
-	ESC_TEST       = 32, /* Enter in test mode */
+	ESC_TEST       = 32 /* Enter in test mode */
 };
 
 enum window_state {
@@ -322,7 +322,7 @@ static char *opt_font = NULL;
 static char *usedfont = NULL;
 static int usedfontsize = 0;
 
-static bool exitThread = false;
+bool exitThread = false;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
