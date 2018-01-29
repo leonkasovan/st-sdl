@@ -21,6 +21,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <input_handler.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
 #include <SDL2/SDL_ttf.h>
@@ -2054,60 +2056,38 @@ kmap(SDL_Keycode k, SDL_Keymod state) {
 
 void
 kpress(SDL_Event *ev) {
-	SDL_KeyboardEvent *e = &ev->key;
-	char buf[32], *customkey;
-	int meta, shift, i;
-	SDL_Keycode ksym = e->keysym.sym;
+	if (ev->type == SDL_KEYDOWN) {
+		SDL_KeyboardEvent *e = &ev->key;
+		char *customkey;
+		int i;
+		SDL_Keycode ksym = e->keysym.sym;
 
-	if (IS_SET(MODE_KBDLOCK))
-		return;
+		if (IS_SET(MODE_KBDLOCK))
+			return;
 
-	meta = e->keysym.mod & KMOD_ALT;
-	shift = e->keysym.mod & KMOD_SHIFT;
+		/* 1. shortcuts */
+		for(i = 0; i < LEN(shortcuts); i++) {
+			if((ksym == shortcuts[i].k)
+					&& ((CLEANMASK(shortcuts[i].mask) & \
+						CLEANMASK(e->keysym.mod)) == CLEANMASK(e->keysym.mod))
+					&& shortcuts[i].func) {
+				shortcuts[i].func(&(shortcuts[i].arg));
+				return;
+			}
+		}
 
-	/* 1. shortcuts */
-	for(i = 0; i < LEN(shortcuts); i++) {
-		if((ksym == shortcuts[i].k)
-				&& ((CLEANMASK(shortcuts[i].mask) & \
-					CLEANMASK(e->keysym.mod)) == CLEANMASK(e->keysym.mod))
-				&& shortcuts[i].func) {
-			shortcuts[i].func(&(shortcuts[i].arg));
+		/* 2. custom keys from config.h */
+		if((customkey = kmap(ksym, e->keysym.mod))) {
+			ttywrite(customkey, strlen(customkey));
+			return;
 		}
 	}
-
-	/* 2. custom keys from config.h */
-	if((customkey = kmap(ksym, e->keysym.mod))) {
-		ttywrite(customkey, strlen(customkey));
-	/* 2. hardcoded (overrides X lookup) */
-	} else {
-		switch(ksym) {
-		case SDLK_UP:
-		case SDLK_DOWN:
-		case SDLK_LEFT:
-		case SDLK_RIGHT:
-			/* XXX: shift up/down doesn't work */
-			sprintf(buf, "\033%c%c",
-				IS_SET(MODE_APPKEYPAD) ? 'O' : '[',
-				(shift ? "abcd":"ABCD")[ksym - SDLK_UP]);
-			ttywrite(buf, 3);
-			break;
-		case SDLK_RETURN:
-			if(meta)
-				ttywrite("\033", 1);
-
-			if(IS_SET(MODE_CRLF)) {
-				ttywrite("\r\n", 2);
-			} else {
-				ttywrite("\r", 1);
-			}
-			break;
-			/* 3. X lookup  */
-		default:
-			if(meta)
-				ttywrite("\033", 1);
-			ttywrite(SDL_GetKeyName(ksym), 1);
-			break;
-		}
+	if(input_update(ev))
+	{
+		const char* input = input_getSequence();
+		fprintf(stderr,"%s",input);
+		ttywrite(input, strlen(input));
+		input_reset();
 	}
 }
 
@@ -2186,7 +2166,9 @@ run(void) {
 
 	while(SDL_WaitEvent(&ev)) {
 		if(ev.type == SDL_QUIT) break;
-		else if (ev.type == SDL_KEYDOWN) kpress(&ev);
+		else if (ev.type == SDL_KEYDOWN || ev.type == SDL_TEXTINPUT){
+			kpress(&ev);
+		}
 		else if (ev.type == SDL_USEREVENT) draw();
 	}
 
@@ -2229,6 +2211,7 @@ run:
 	tnew(80, 24);
 	ttynew();
 	sdlinit(); /* Must have TTY before cresize */
+	input_resetSDLTextInput();
 	run();
 	return 0;
 }

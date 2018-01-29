@@ -3,29 +3,35 @@
 
 include config.mk
 
-SRC = st.c
-OBJ = ${SRC:.c=.o}
+SRC = st.c input_handler.cpp
+OBJT = $(patsubst %.c,%.o,${SRC})
+OBJ = $(patsubst %.cpp,%.o,${OBJT})
 
 all: options st
 
 options:
 	@echo st build options:
 	@echo "CFLAGS   = ${CFLAGS}"
+	@echo "CXXFLAGS = ${CXXFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
+	@echo "CXX      = ${CXX}"
+	@echo "OBJ      = ${OBJ}"
 
 config.h:
 	cp config.def.h config.h
 
-.c.o:
+st.o: st.c input_handler.h
 	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+	@${CC} -c st.c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk
+input_handler.o: input_handler.cpp input_handler.h
+	@echo CXX $<
+	@${CXX} -c ${CXXFLAGS} $<
 
-st: ${OBJ}
-	@echo CC -o $@ ${OBJ} ${LDFLAGS}
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+st: st.o input_handler.o
+	@echo CC -o st ${OBJ} ${LDFLAGS}
+	@${CC} -o st ${OBJ} ${LDFLAGS}
 
 clean:
 	@echo cleaning

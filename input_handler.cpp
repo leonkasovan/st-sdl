@@ -1,5 +1,7 @@
 #include "input_handler.h"
 
+#define _GLIBCXX_USE_CXX11_ABI 0
+
 #include <iostream>
 #include <string>
 
@@ -51,10 +53,11 @@ static std::string inputSequence;
 /**
  * @brief Used to Restart the SDL_GetText Event on changeing focus.
  */
-void resetTextInput()
+void input_resetSDLTextInput()
 {
     SDL_StopTextInput();
     SDL_StartTextInput();
+	input_reset();
 }
 
 void setInputSequence(const std::string& sequence)
@@ -822,24 +825,25 @@ bool handleKeyDownEvents(SDL_Event &event)
  * @param event
  * @return
  */
-bool input_update(SDL_Event &event)
+bool input_update(SDL_Event* event)
 {
-    switch(event.type)
+	bool result;
+    switch(event->type)
     {
         case SDL_TEXTINPUT:
-            handleTextInputEvent(event);
+            result = handleTextInputEvent(*event);
             break;
         case SDL_KEYDOWN:
-            handleKeyDownEvents(event);
+            result = handleKeyDownEvents(*event);
             break;
 
         default:
+			result = false;
             break;
     }
 
     // If Input was received return true.
-    // Otherwise events are handled here.
-    if(!inputSequence.empty())
+    if(result && !inputSequence.empty())
         return true;
 
     return false;

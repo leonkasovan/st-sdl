@@ -8,9 +8,10 @@ extern "C" {
 #endif	
 
 // keyboard events, True if Data Available.
-bool input_update(SDL_Event &event);
+bool input_update(SDL_Event *event);
 
 void input_reset();
+void input_resetSDLTextInput();
 const char* input_getSequence();
 
 #ifdef __cplusplus
