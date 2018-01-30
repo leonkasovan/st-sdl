@@ -633,7 +633,7 @@ ttyread(void) {
 	while(buflen >= UTF_SIZ || isfullutf8(ptr,buflen)) {
 		charsize = utf8decode(ptr, &utf8c);
 		utf8encode(&utf8c, s);
-		fprintf(stderr, "%.*s", charsize, s);
+		//DEBUG fprintf(stderr, "%.*s", charsize, s);
 		tputc(s, charsize);
 		ptr += charsize;
 		buflen -= charsize;

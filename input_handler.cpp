@@ -827,14 +827,14 @@ bool handleKeyDownEvents(SDL_Event &event)
  */
 bool input_update(SDL_Event* event)
 {
-	bool result;
+	bool result = true;
     switch(event->type)
     {
         case SDL_TEXTINPUT:
             result = handleTextInputEvent(*event);
             break;
         case SDL_KEYDOWN:
-            result = handleKeyDownEvents(*event);
+			handleKeyDownEvents(*event);
             break;
 
         default:
