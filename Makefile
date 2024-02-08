@@ -1,13 +1,14 @@
 # st - simple terminal
 # See LICENSE file for copyright and license details.
 
-include config.mk
+# include config.mk
+include config.RG353P.mk
 
 SRC = st.c input_handler.cpp
 OBJT = $(patsubst %.c,%.o,${SRC})
 OBJ = $(patsubst %.cpp,%.o,${OBJT})
 
-all: options st
+all: config.h options st
 
 options:
 	@echo st build options:

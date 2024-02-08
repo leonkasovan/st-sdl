@@ -2096,8 +2096,8 @@ cresize()
 {
 	int col, row;
 
-	xw.w = 1280;
-	xw.h = 720;
+	xw.w = 640;
+	xw.h = 480;
 
 	col = (xw.w - 2*borderpx) / xw.cw;
 	row = (xw.h - 2*borderpx) / xw.ch;
